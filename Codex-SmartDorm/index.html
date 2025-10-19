@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Dorm Monitoring & Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
+</head>
+
+
+<body class="bg-gray-50 text-gray-800">
+  
+  <header class="bg-white shadow-md fixed w-full top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-blue-600">SmartDorm</h1>
+      
+      
+      <button id="menu-btn" class="md:hidden text-gray-700 focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+        </svg>
+      </button>
+
+      
+      <nav id="menu" class="hidden md:flex gap-6">
+        <a href="#features" class="hover:text-blue-600">Features</a>
+        <a href="#payment" class="hover:text-blue-600">Payments</a>
+        <a href="#contact" class="hover:text-blue-600">Contact</a>
+      </nav>
+
+      <a href="#contact" class="hidden md:inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        Get Started
+      </a>
+    </div>
+
+    
+    <div id="mobile-menu" class="hidden bg-white border-t border-gray-200 md:hidden">
+      <a href="#features" class="block px-6 py-3 hover:bg-gray-100">Features</a>
+      <a href="#payment" class="block px-6 py-3 hover:bg-gray-100">Payments</a>
+      <a href="#contact" class="block px-6 py-3 hover:bg-gray-100">Contact</a>
+    </div>
+  </header>
+
+  
+  <section class="pt-28 pb-16 text-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Smart Dorm Monitoring & Management System</h2>
+      <p class="text-base sm:text-lg md:text-xl mb-6">
+        Simplify dorm operations with real-time monitoring, automation, and flexible payments via GCash & Maya.
+      </p>
+      <a href="#features" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition">
+        Learn More
+      </a>
+    </div>
+  </section>
+
+  
+  <section id="features" class="py-16 bg-white px-4">
+    <div class="max-w-6xl mx-auto">
+      <h3 class="text-2xl sm:text-3xl font-bold text-center mb-10 text-gray-800">Core Features</h3>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-lg transition">
+          <h4 class="text-xl font-semibold mb-3 text-blue-600">Real-Time Monitoring</h4>
+          <p>Track dorm occupancy through QR code scans and monitor water and electricity usage with manually updated smart dashboards.</p>
+        </div>
+        <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-lg transition">
+          <h4 class="text-xl font-semibold mb-3 text-blue-600">Automated Management</h4>
+          <p>Manage rooms, tenants, and maintenance tasks effortlessly through one central platform.</p>
+        </div>
+        <div class="bg-gray-50 p-6 rounded-2xl shadow hover:shadow-lg transition">
+          <h4 class="text-xl font-semibold mb-3 text-blue-600">Flexible Payments</h4>
+          <p>Enable rent and utility payments using <strong>GCash</strong> and <strong>Maya API</strong> for quick, secure transactions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="payment" class="py-16 bg-gray-100 text-center px-4">
+    <div class="max-w-5xl mx-auto">
+      <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Smart Payment Integration</h3>
+      <p class="max-w-2xl mx-auto mb-10 text-gray-600">
+        Our system connects directly with GCash and Maya APIs, allowing students to pay rent, utilities, and fees safely and conveniently — anytime, anywhere.
+      </p>
+      <div class="flex justify-center flex-wrap gap-6">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/GCash_logo.svg" alt="GCash" class="h-10 sm:h-12" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Maya_Logo.svg" alt="Maya" class="h-10 sm:h-12" />
+      </div>
+    </div>
+  </section>
+
+ 
+  <section id="contact" class="py-16 bg-white px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Get in Touch</h3>
+      <p class="text-gray-600 mb-8">
+        Interested in collaborating with us or using SmartDorm? Contact our team for demos, support, or partnership inquiries.
+      </p>
+      <a href="mailto:smartdormproject@gmail.com" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700">
+        Contact Us
+      </a>
+    </div>
+  </section>
+
+  <footer class="bg-gray-900 text-gray-300 py-8 text-center text-sm sm:text-base px-4">
+    <p>© 2025 Smart Dorm Monitoring and Management System. All rights reserved.</p>
+  </footer>
+ <script src="script.js">
+  </script>
+</body>
+</html>
