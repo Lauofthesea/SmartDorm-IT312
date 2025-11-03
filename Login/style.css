@@ -1,0 +1,12 @@
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+button {
+  transition: 0.3s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
