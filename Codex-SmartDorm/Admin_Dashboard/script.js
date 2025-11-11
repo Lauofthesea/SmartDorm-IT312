@@ -42,7 +42,6 @@ async function generateId(prefix, collectionName) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Tabs
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
   tabBtns.forEach((btn) => {
@@ -55,8 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   document.querySelector("[data-tab='tenants']")?.click();
-
-  // Logout
   document.getElementById("logoutBtn")?.addEventListener("click", async () => {
     try {
       await signOut(auth);
@@ -86,8 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const transactionTable = document.getElementById("transactionTable");
 
   let editingTenantId = null;
-
-  // ----------------- TENANTS -----------------
   async function loadTenants() {
     if (!tenantTable) return;
     tenantTable.innerHTML = "";
@@ -182,8 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("loadTenants error:", err);
     }
   }
-
-  // ----------------- AVAILABLE ROOMS -----------------
   async function loadAvailableRooms() {
     if (!tenantRoomSelect) return;
     tenantRoomSelect.innerHTML = "";
@@ -212,7 +205,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Add tenant (open modal)
   addTenantBtn?.addEventListener("click", async () => {
     editingTenantId = null;
     tenantModal?.querySelectorAll("input").forEach((i) => (i.value = ""));
@@ -225,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tenantModal?.classList.add("hidden");
   });
 
-  // Save / Update tenant
   saveTenantBtn?.addEventListener("click", async () => {
     const name = document.getElementById("tenantName").value.trim();
     const age = document.getElementById("tenantAge").value.trim();
@@ -283,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       } else {
-        // create new tenant
         const tenantId = await generateId("T", "Tenants");
         await addDoc(collection(db, "Tenants"), {
           tenantId,
@@ -336,7 +326,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ----------------- ROOMS -----------------
   async function loadRooms() {
     if (!roomTable) return;
     roomTable.innerHTML = "";
@@ -415,7 +404,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-// ----------------- BILLS -----------------
 async function loadBills() {
   if (!billTable) return;
   billTable.innerHTML = "";
@@ -509,7 +497,6 @@ async function loadBills() {
   }
 }
 
-// ----------------- TRANSACTIONS -----------------
 async function loadTransactions() {
   if (!transactionTable) return;
   transactionTable.innerHTML = "";
@@ -567,8 +554,6 @@ async function loadTransactions() {
     console.error("Error loading transactions:", err);
   }
 }
-
-  // ----------------- INITIAL LOAD -----------------
   (async () => {
     await loadTenants();
     await loadRooms();
