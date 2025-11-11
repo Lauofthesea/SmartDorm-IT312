@@ -12,7 +12,6 @@ import {
 const loginBtn = document.getElementById("loginBtn");
 const googleLoginBtn = document.getElementById("googleLoginBtn");
 
-// ---------------- Email / Password Login ----------------
 loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
@@ -31,7 +30,6 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
-// ---------------- Google Login ----------------
 googleLoginBtn.addEventListener("click", async () => {
   try {
     const result = await signInWithPopup(auth, provider);
@@ -53,14 +51,13 @@ googleLoginBtn.addEventListener("click", async () => {
   }
 });
 
-// ---------------- Redirect Based on Role ----------------
 async function handleRedirect(user) {
   try {
     const adminRef = doc(db, "Admin", user.email);
     const adminSnap = await getDoc(adminRef);
 
     if (adminSnap.exists() && adminSnap.data().role === "admin") {
-      window.location.href = "../Admin/index.html";
+      window.location.href = "./Admin_Dashboard/index.html";
     } else {
       window.location.href = "../Tenant/index.html";
     }
