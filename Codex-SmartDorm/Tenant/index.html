@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartDorm | Tenant Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
+  <style>
+    .card {
+      @apply bg-white rounded-lg shadow-md p-6 mb-6;
+    }
+    .stat-card {
+      @apply bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg p-6;
+    }
+    .badge-status {
+      @apply inline-block px-3 py-1 rounded-full text-sm font-semibold;
+    }
+    .badge-paid {
+      @apply bg-green-100 text-green-700;
+    }
+    .badge-unpaid {
+      @apply bg-yellow-100 text-yellow-700;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100">
+  <!-- Header -->
+  <header class="bg-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <img src="https://cdn-icons-png.flaticon.com/512/906/906334.png" alt="SmartDorm" class="h-8 w-8">
+        <h1 class="text-2xl font-bold text-indigo-600">SmartDorm</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="tenantNameDisplay" class="text-gray-700 font-medium">Loading...</span>
+        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    
+    <!-- Welcome Section -->
+    <div class="mb-8">
+      <h2 class="text-3xl font-bold text-gray-800">Welcome, <span id="tenantName">Tenant</span>!</h2>
+      <p class="text-gray-600 mt-2">Manage your room, bills, and payments from here.</p>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="grid md:grid-cols-3 gap-6 mb-8">
+      <div class="stat-card">
+        <h3 class="text-gray-600 font-semibold mb-2">Room Number</h3>
+        <p class="text-3xl font-bold text-indigo-600" id="roomNumberStat">—</p>
+      </div>
+      <div class="stat-card">
+        <h3 class="text-gray-600 font-semibold mb-2">Total Outstanding</h3>
+        <p class="text-3xl font-bold text-orange-600" id="totalOutstanding">₱0.00</p>
+      </div>
+      <div class="stat-card">
+        <h3 class="text-gray-600 font-semibold mb-2">Payment Status</h3>
+        <p class="text-3xl font-bold text-green-600" id="paymentStatus">Up to date</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-4 mb-6 border-b border-gray-200">
+      <button id="billsTab" class="tab-btn bg-indigo-500 text-white px-6 py-2 rounded-t-lg font-medium">
+        Bills
+      </button>
+      <button id="profileTab" class="tab-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-t-lg font-medium">
+        Profile
+      </button>
+    </div>
+
+    <!-- Bills Tab -->
+    <div id="billsContent" class="tab-content card">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-gray-800">My Bills</h3>
+        <a href="../Payment/index.html" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg">
+          Pay Bill
+        </a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-100 border-b-2 border-gray-300">
+            <tr>
+              <th class="p-3 text-left font-semibold">Bill ID</th>
+              <th class="p-3 text-center font-semibold">Electric</th>
+              <th class="p-3 text-center font-semibold">Water</th>
+              <th class="p-3 text-center font-semibold">Room Rent</th>
+              <th class="p-3 text-center font-semibold">Total</th>
+              <th class="p-3 text-center font-semibold">Status</th>
+              <th class="p-3 text-center font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody id="billsTable"></tbody>
+        </table>
+      </div>
+      <p id="noBillsMsg" class="text-center text-gray-500 mt-4">No bills found.</p>
+    </div>
+
+    <!-- Profile Tab -->
+    <div id="profileContent" class="tab-content hidden card">
+      <h3 class="text-2xl font-bold text-gray-800 mb-6">Tenant Information</h3>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Full Name</label>
+          <p id="profileName" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Email</label>
+          <p id="profileEmail" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Contact Number</label>
+          <p id="profileContact" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Age</label>
+          <p id="profileAge" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Room Number</label>
+          <p id="profileRoom" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Move-in Date</label>
+          <p id="profileMoveIn" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Duration (days)</label>
+          <p id="profileDuration" class="text-lg text-gray-800 bg-gray-50 p-3 rounded">—</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

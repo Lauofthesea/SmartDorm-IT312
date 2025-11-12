@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartDorm - Payment</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css-files/payment.css">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
+</head>
+
+<body class="bg-gray-50">
+  
+  <header class="fixed w-full top-0 z-50 bg-white shadow-md">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <img src="https://cdn-icons-png.flaticon.com/512/906/906334.png" alt="SmartDorm" class="h-8 w-8">
+        <h1 class="text-2xl font-bold text-indigo-600">SmartDorm</h1>
+      </div>
+      
+      <button id="backBtn" class="text-gray-600 hover:text-indigo-600 font-medium">
+        ← Back to Dashboard
+      </button>
+    </div>
+  </header>
+
+  <main class="pt-28 pb-16 px-4">
+    <div class="max-w-4xl mx-auto">
+      
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">Payment Portal</h2>
+        <p class="text-gray-600">Complete your payment securely using GCash or Maya</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        
+        <div class="payment-summary">
+          <h3 class="section-title">Bill Summary</h3>
+          
+          <div class="bill-info">
+            <div class="bill-row">
+              <span class="bill-label">Bill ID:</span>
+              <span class="bill-value" id="billId">Loading...</span>
+            </div>
+            <div class="bill-row">
+              <span class="bill-label">Tenant Name:</span>
+              <span class="bill-value" id="tenantName">Loading...</span>
+            </div>
+            <div class="bill-row">
+              <span class="bill-label">Room Number:</span>
+              <span class="bill-value" id="roomNumber">Loading...</span>
+            </div>
+          </div>
+
+          <div class="bill-breakdown">
+            <h4 class="breakdown-title">Charges Breakdown</h4>
+            
+            <div class="charge-item">
+              <span>Room Rent</span>
+              <span id="roomRent">₱0.00</span>
+            </div>
+            <div class="charge-item">
+              <span>Electricity</span>
+              <span id="electric">₱0.00</span>
+            </div>
+            <div class="charge-item">
+              <span>Water</span>
+              <span id="water">₱0.00</span>
+            </div>
+            
+            <div class="charge-total">
+              <span>Total Amount</span>
+              <span id="totalAmount">₱0.00</span>
+            </div>
+          </div>
+
+          <div class="bill-status">
+            <span class="status-label">Status:</span>
+            <span class="status-badge" id="billStatus">Unpaid</span>
+          </div>
+        </div>
+
+        <div class="payment-form">
+          <h3 class="section-title">Payment Method</h3>
+          
+          <div class="payment-methods">
+            <button class="payment-method-btn active" data-method="gcash">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/GCash_logo.svg" alt="GCash" class="payment-logo">
+              <span>GCash</span>
+            </button>
+            <button class="payment-method-btn" data-method="maya">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Maya_Logo.svg" alt="Maya" class="payment-logo">
+              <span>Maya</span>
+            </button>
+          </div>
+
+          <form id="paymentForm" class="form-container">
+            
+            <div class="form-group">
+              <label for="payerName">Full Name</label>
+              <input type="text" id="payerName" placeholder="Enter your full name" required>
+              <span class="error-message" id="nameError"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="payerEmail">Email Address</label>
+              <input type="email" id="payerEmail" placeholder="your@email.com" required>
+              <span class="error-message" id="emailError"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="payerPhone">Phone Number</label>
+              <input type="tel" id="payerPhone" placeholder="09XXXXXXXXX" required>
+              <span class="error-message" id="phoneError"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="accountNumber" id="accountLabel">GCash Number</label>
+              <input type="tel" id="accountNumber" placeholder="09XXXXXXXXX" required>
+              <span class="error-message" id="accountError"></span>
+            </div>
+
+            <div class="payment-note">
+              <svg class="note-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p>You will be redirected to complete your payment securely through your selected payment method.</p>
+            </div>
+
+            <button type="submit" class="submit-btn" id="payBtn">
+              <span id="btnText">Proceed to Payment</span>
+              <svg class="btn-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="security-info">
+        <div class="security-item">
+          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <div>
+            <h4>Secure Payment</h4>
+            <p>256-bit SSL encryption</p>
+          </div>
+        </div>
+        <div class="security-item">
+          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <div>
+            <h4>Protected</h4>
+            <p>Your data is safe with us</p>
+          </div>
+        </div>
+        <div class="security-item">
+          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <h4>Instant Confirmation</h4>
+            <p>Real-time payment updates</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="loadingModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="loader"></div>
+      <h3 class="modal-title">Processing Payment...</h3>
+      <p class="modal-text">Please wait while we process your payment securely.</p>
+    </div>
+  </div>
+  <div id="successModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="success-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="modal-title">Payment Successful!</h3>
+      <p class="modal-text">Your payment has been processed successfully.</p>
+      <button class="modal-btn" id="successBtn">Back to Dashboard</button>
+    </div>
+  </div>
+
+  <div id="errorModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="error-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <h3 class="modal-title">Payment Failed</h3>
+      <p class="modal-text" id="errorMessage">Something went wrong. Please try again.</p>
+      <button class="modal-btn" id="errorBtn">Try Again</button>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
