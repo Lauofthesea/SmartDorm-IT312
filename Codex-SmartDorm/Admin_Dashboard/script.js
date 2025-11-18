@@ -12,9 +12,15 @@ import {
   Timestamp,
   query,
   orderBy,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
+import { 
+  getAuth, 
+  signOut, 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDPJNPW_zQ5IPH8Svdl-y7DMx7IW8WHurU",
@@ -29,7 +35,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "../Login/index.html";
@@ -39,6 +44,18 @@ onAuthStateChanged(auth, (user) => {
 async function generateId(prefix, collectionName) {
   const snap = await getDocs(collection(db, collectionName));
   return `${prefix}${String(snap.size + 1).padStart(3, "0")}`;
+}
+
+// Calculate age from birthdate
+function calculateAge(birthdate) {
+  const today = new Date();
+  const birth = new Date(birthdate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -83,6 +100,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const transactionTable = document.getElementById("transactionTable");
 
   let editingTenantId = null;
+  let editingTenantEmail = null;
+
   async function loadTenants() {
     if (!tenantTable) return;
     tenantTable.innerHTML = "";
@@ -90,17 +109,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const snap = await getDocs(query(collection(db, "Tenants"), orderBy("createdAt")));
       snap.forEach((docSnap) => {
         const t = docSnap.data() || {};
+        const age = t.birthdate ? calculateAge(t.birthdate) : "—";
         const tr = document.createElement("tr");
         tr.className = "border-b border-gray-200 hover:bg-gray-50";
         tr.innerHTML = `
           <td class="p-3 col-center text-sm font-medium text-gray-700">${t.tenantId || "—"}</td>
           <td class="p-3 col-left text-sm text-gray-700">${t.name || "—"}</td>
           <td class="p-3 col-center text-sm text-gray-600">${t.roomNumber || "—"}</td>
-          <td class="p-3 col-center text-sm text-gray-600">${t.age || "—"}</td>
+          <td class="p-3 col-center text-sm text-gray-600">${age}</td>
           <td class="p-3 col-center text-sm text-gray-600">${t.contact || "—"}</td>
           <td class="p-3 col-left text-sm text-gray-600">${t.email || "—"}</td>
           <td class="p-3 col-center text-sm text-gray-600">${t.moveInDate || "—"}</td>
-          <td class="p-3 col-center text-sm text-gray-600">${t.duration || "—"}</td>
+          <td class="p-3 col-center text-sm text-gray-600">${t.birthdate || "—"}</td>
           <td class="p-3 col-center text-sm">
             <div class="flex justify-center items-center gap-2">
               <button class="editTenant bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded" data-id="${docSnap.id}">Edit</button>
@@ -123,6 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
               return;
             }
             const tenant = snap.data();
+            
+            // Free up the room
             if (tenant.roomNumber) {
               const roomsSnap = await getDocs(collection(db, "Rooms"));
               const matched = roomsSnap.docs.find((r) => r.data().roomNumber === tenant.roomNumber);
@@ -136,7 +158,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
               }
             }
+            
+            // Delete tenant
             await deleteDoc(tenantRef);
+            
+            // Delete user auth record (if exists in Users collection)
+            if (tenant.email) {
+              try {
+                await deleteDoc(doc(db, "Users", tenant.email));
+              } catch (err) {
+                console.log("User document not found or already deleted");
+              }
+            }
+            
             await loadTenants();
             await loadRooms();
             await loadAvailableRooms();
@@ -158,13 +192,18 @@ document.addEventListener("DOMContentLoaded", () => {
               return;
             }
             const t = docSnap.data() || {};
+            editingTenantEmail = t.email;
+            
             document.getElementById("tenantName").value = t.name || "";
-            document.getElementById("tenantAge").value = t.age || "";
+            document.getElementById("tenantBirthdate").value = t.birthdate || "";
             document.getElementById("tenantContact").value = t.contact || "";
             document.getElementById("tenantEmail").value = t.email || "";
+            document.getElementById("tenantEmail").disabled = true; // Can't change email
+            document.getElementById("tenantPassword").value = "";
+            document.getElementById("tenantPassword").placeholder = "Leave blank to keep current password";
             document.getElementById("tenantMoveIn").value = t.moveInDate || "";
-            document.getElementById("tenantDuration").value = t.duration || "";
-            await loadAvailableRooms(); 
+            
+            await loadAvailableRooms();
             document.getElementById("tenantRoom").value = t.roomNumber || "";
             tenantModal?.classList.remove("hidden");
           } catch (err) {
@@ -177,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("loadTenants error:", err);
     }
   }
+
   async function loadAvailableRooms() {
     if (!tenantRoomSelect) return;
     tenantRoomSelect.innerHTML = "";
@@ -207,28 +247,57 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addTenantBtn?.addEventListener("click", async () => {
     editingTenantId = null;
-    tenantModal?.querySelectorAll("input").forEach((i) => (i.value = ""));
+    editingTenantEmail = null;
+    tenantModal?.querySelectorAll("input").forEach((i) => {
+      i.value = "";
+      i.disabled = false;
+    });
+    document.getElementById("tenantPassword").placeholder = "Create password for tenant";
     await loadAvailableRooms();
     tenantModal?.classList.remove("hidden");
   });
 
   cancelTenantBtn?.addEventListener("click", () => {
     editingTenantId = null;
+    editingTenantEmail = null;
     tenantModal?.classList.add("hidden");
   });
 
   saveTenantBtn?.addEventListener("click", async () => {
     const name = document.getElementById("tenantName").value.trim();
-    const age = document.getElementById("tenantAge").value.trim();
+    const birthdate = document.getElementById("tenantBirthdate").value;
     const contact = document.getElementById("tenantContact").value.trim();
     const email = document.getElementById("tenantEmail").value.trim();
+    const password = document.getElementById("tenantPassword").value;
     const moveInDate = document.getElementById("tenantMoveIn").value;
-    const duration = parseInt(document.getElementById("tenantDuration").value, 10);
     const roomNumber = document.getElementById("tenantRoom").value;
 
-    if (!name || !moveInDate || !duration || !roomNumber) {
+    if (!name || !birthdate || !contact || !email || !moveInDate || !roomNumber) {
       alert("Please fill all required fields and select an available room.");
       return;
+    }
+
+    if (!editingTenantId && !password) {
+      alert("Please create a password for the new tenant.");
+      return;
+    }
+
+    if (password && password.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+
+    // Store admin credentials to re-login after creating tenant
+    const adminEmail = auth.currentUser?.email;
+    
+    // Prompt admin for their password to re-authenticate later
+    let adminPassword = null;
+    if (!editingTenantId && password) {
+      adminPassword = prompt("Please enter YOUR admin password to continue creating the tenant account:");
+      if (!adminPassword) {
+        alert("Admin password required to create tenant accounts.");
+        return;
+      }
     }
 
     try {
@@ -246,21 +315,30 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (editingTenantId) {
+        // Update existing tenant
         const tenantRef = doc(db, "Tenants", editingTenantId);
-
         const prevSnap = await getDoc(tenantRef);
         const prev = prevSnap.exists() ? prevSnap.data() : null;
+        
         await updateDoc(tenantRef, {
           name,
-          age,
+          birthdate,
           contact,
           email,
           moveInDate,
-          duration,
           roomNumber,
           updatedAt: serverTimestamp(),
         });
 
+        // Update Users collection
+        const userRef = doc(db, "Users", email);
+        await setDoc(userRef, {
+          email,
+          role: "tenant",
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+
+        // Free up previous room if changed
         if (prev && prev.roomNumber && prev.roomNumber !== roomNumber) {
           const prevRoomDoc = roomsSnap.docs.find((r) => r.data().roomNumber === prev.roomNumber);
           if (prevRoomDoc) {
@@ -273,33 +351,55 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         }
+        
+        // Update room status
+        const startDate = new Date(moveInDate);
+        await updateDoc(doc(db, "Rooms", matchedRoomDoc.id), {
+          status: "Occupied",
+          occupant: name,
+          startDate: Timestamp.fromDate(startDate),
+          endDate: null,
+          updatedAt: serverTimestamp(),
+        });
       } else {
+        // Create new tenant - Do all Firestore operations first
         const tenantId = await generateId("T", "Tenants");
+        
+        console.log("Creating tenant with email:", email);
+        
+        // Create tenant document
         await addDoc(collection(db, "Tenants"), {
           tenantId,
           name,
-          age,
+          birthdate,
           contact,
           email,
           moveInDate,
-          duration,
           roomNumber,
           createdAt: serverTimestamp(),
         });
-      }
+        console.log("Tenant document created");
 
-      const startDate = new Date(moveInDate);
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + (isNaN(duration) ? 0 : duration));
-      await updateDoc(doc(db, "Rooms", matchedRoomDoc.id), {
-        status: "Occupied",
-        occupant: name,
-        startDate: Timestamp.fromDate(startDate),
-        endDate: Timestamp.fromDate(endDate),
-        updatedAt: serverTimestamp(),
-      });
+        // Create Users collection document  
+        await setDoc(doc(db, "Users", email), {
+          email,
+          role: "tenant",
+          createdAt: serverTimestamp(),
+        });
+        console.log("Users document created");
 
-      if (!editingTenantId) {
+        // Update room status
+        const startDate = new Date(moveInDate);
+        await updateDoc(doc(db, "Rooms", matchedRoomDoc.id), {
+          status: "Occupied",
+          occupant: name,
+          startDate: Timestamp.fromDate(startDate),
+          endDate: null,
+          updatedAt: serverTimestamp(),
+        });
+        console.log("Room updated");
+
+        // Create initial bill
         const billId = await generateId("B", "Bills");
         const rentAmount = typeof roomData.rate === "number" ? roomData.rate : parseFloat(roomData.rate || 0);
         await addDoc(collection(db, "Bills"), {
@@ -312,17 +412,51 @@ document.addEventListener("DOMContentLoaded", () => {
           status: "Unpaid",
           createdAt: serverTimestamp(),
         });
+        console.log("Bill created");
+
+        // Now create Firebase Auth account (this will switch users)
+        console.log("Creating Firebase Auth account...");
+        try {
+          const tenantCredential = await createUserWithEmailAndPassword(auth, email, password);
+          console.log("✓ Tenant auth account created:", tenantCredential.user.uid);
+          
+          // Sign out the tenant immediately
+          await signOut(auth);
+          console.log("✓ Tenant signed out");
+          
+          // Sign back in as admin
+          console.log("Re-authenticating admin with email:", adminEmail);
+          await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+          console.log("✓ Admin re-authenticated successfully");
+          
+        } catch (authError) {
+          console.error("Auth error details:", authError);
+          if (authError.code === "auth/email-already-in-use") {
+            alert("This email is already registered in Firebase Authentication.\n\nTenant records created in Firestore, but authentication account already exists.\n\nThe tenant may already be able to login with their existing password.");
+          } else if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
+            alert("Incorrect admin password entered.\n\nTenant created successfully but you need to log in again as admin.");
+            window.location.href = "../Login/index.html";
+            return;
+          } else if (authError.code === "auth/invalid-email") {
+            alert("Invalid email format. Tenant records created but auth account failed.");
+          } else {
+            console.error("Auth error:", authError);
+            alert("Tenant records created in Firestore.\n\nHowever, authentication account creation failed:\n" + authError.message + "\n\nYou may need to create the auth account manually in Firebase Console.");
+          }
+        }
       }
 
       editingTenantId = null;
+      editingTenantEmail = null;
       tenantModal?.classList.add("hidden");
       await loadTenants();
       await loadRooms();
       await loadBills();
       await loadAvailableRooms();
+      alert("Tenant saved successfully!\n\nCredentials:\nEmail: " + email + "\nPassword: " + password + "\n\nPlease share these with the tenant.");
     } catch (err) {
       console.error("saveTenant error:", err);
-      alert("Error saving tenant (see console).");
+      alert("Error saving tenant: " + err.message);
     }
   });
 
@@ -404,156 +538,159 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-async function loadBills() {
-  if (!billTable) return;
-  billTable.innerHTML = "";
-  try {
-    const billsSnap = await getDocs(query(collection(db, "Bills"), orderBy("createdAt")));
-    billsSnap.forEach((docSnap) => {
-      const b = docSnap.data() || {};
-      const total = (b.electric || 0) + (b.water || 0) + (b.roomRent || 0);
-      const color =
-        b.status === "Paid"
-          ? "bg-green-100 text-green-700"
-          : "bg-yellow-100 text-yellow-700";
+  async function loadBills() {
+    if (!billTable) return;
+    billTable.innerHTML = "";
+    try {
+      const billsSnap = await getDocs(query(collection(db, "Bills"), orderBy("createdAt")));
+      billsSnap.forEach((docSnap) => {
+        const b = docSnap.data() || {};
+        const total = (b.electric || 0) + (b.water || 0) + (b.roomRent || 0);
+        const color =
+          b.status === "Paid"
+            ? "bg-green-100 text-green-700"
+            : "bg-yellow-100 text-yellow-700";
 
-      const tr = document.createElement("tr");
-      tr.className = "border-b border-gray-200 hover:bg-gray-50";
-      tr.innerHTML = `
-        <td class="p-3 text-center text-sm font-medium text-gray-700">${b.billId || "—"}</td>
-        <td class="p-3 text-left text-sm text-gray-700">${b.tenantName || "—"}</td>
-        <td class="p-3 text-center text-sm text-gray-600">${b.roomNumber || "—"}</td>
-        <td class="p-3 text-center text-sm text-gray-600">₱${(b.electric || 0).toFixed(2)}</td>
-        <td class="p-3 text-center text-sm text-gray-600">₱${(b.water || 0).toFixed(2)}</td>
-        <td class="p-3 text-center text-sm text-gray-600">₱${(b.roomRent || 0).toFixed(2)}</td>
-        <td class="p-3 text-center text-sm font-semibold text-gray-800">₱${total.toFixed(2)}</td>
-        <td class="p-3 text-center text-sm">
-          <span class="px-3 py-1 rounded-full text-xs font-semibold ${color}">
-            ${b.status || "—"}
-          </span>
-        </td>
-        <td class="p-3 text-center text-sm">
-          <div class="flex justify-center items-center gap-2">
-            <button class="editBill bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded" data-id="${docSnap.id}">
-              Edit
-            </button>
-          </div>
-        </td>
-      `;
-      billTable.appendChild(tr);
-    });
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-gray-200 hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-center text-sm font-medium text-gray-700">${b.billId || "—"}</td>
+          <td class="p-3 text-left text-sm text-gray-700">${b.tenantName || "—"}</td>
+          <td class="p-3 text-center text-sm text-gray-600">${b.roomNumber || "—"}</td>
+          <td class="p-3 text-center text-sm text-gray-600">₱${(b.electric || 0).toFixed(2)}</td>
+          <td class="p-3 text-center text-sm text-gray-600">₱${(b.water || 0).toFixed(2)}</td>
+          <td class="p-3 text-center text-sm text-gray-600">₱${(b.roomRent || 0).toFixed(2)}</td>
+          <td class="p-3 text-center text-sm font-semibold text-gray-800">₱${total.toFixed(2)}</td>
+          <td class="p-3 text-center text-sm">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${color}">
+              ${b.status || "—"}
+            </span>
+          </td>
+          <td class="p-3 text-center text-sm">
+            <div class="flex justify-center items-center gap-2">
+              <button class="editBill bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded" data-id="${docSnap.id}">
+                Edit
+              </button>
+            </div>
+          </td>
+        `;
+        billTable.appendChild(tr);
+      });
 
-    document.querySelectorAll(".editBill").forEach((btn) => {
-      btn.onclick = async () => {
-        const billRef = doc(db, "Bills", btn.dataset.id);
-        const snap = await getDoc(billRef);
-        if (!snap.exists()) return alert("Bill not found.");
-        const b = snap.data();
-        const originalStatus = b.status || "Unpaid";
+      document.querySelectorAll(".editBill").forEach((btn) => {
+        btn.onclick = async () => {
+          const billRef = doc(db, "Bills", btn.dataset.id);
+          const snap = await getDoc(billRef);
+          if (!snap.exists()) return alert("Bill not found.");
+          const b = snap.data();
+          const originalStatus = b.status || "Unpaid";
 
-        document.getElementById("billTenantName").value = b.tenantName || "";
-        document.getElementById("billRoomNumber").value = b.roomNumber || "";
-        document.getElementById("billElectric").value = b.electric || 0;
-        document.getElementById("billWater").value = b.water || 0;
-        document.getElementById("billRoomRent").value = b.roomRent || 0;
-        document.getElementById("billStatus").value = b.status || "Unpaid";
-        billModal?.classList.remove("hidden");
+          document.getElementById("billTenantName").value = b.tenantName || "";
+          document.getElementById("billRoomNumber").value = b.roomNumber || "";
+          document.getElementById("billElectric").value = b.electric || 0;
+          document.getElementById("billWater").value = b.water || 0;
+          document.getElementById("billRoomRent").value = b.roomRent || 0;
+          document.getElementById("billStatus").value = b.status || "Unpaid";
+          billModal?.classList.remove("hidden");
 
-        saveBillBtn.onclick = async () => {
-          const newElectric = parseFloat(document.getElementById("billElectric").value) || 0;
-          const newWater = parseFloat(document.getElementById("billWater").value) || 0;
-          const newStatus = document.getElementById("billStatus").value;
+          saveBillBtn.onclick = async () => {
+            const newElectric = parseFloat(document.getElementById("billElectric").value) || 0;
+            const newWater = parseFloat(document.getElementById("billWater").value) || 0;
+            const newStatus = document.getElementById("billStatus").value;
 
-          await updateDoc(billRef, {
-            electric: newElectric,
-            water: newWater,
-            status: newStatus,
-            updatedAt: serverTimestamp(),
-          });
-
-          if (originalStatus !== "Paid" && newStatus === "Paid") {
-            const totalAmount = newElectric + newWater + (b.roomRent || 0);
-            const trId = await generateId("TR", "Transactions");
-            await addDoc(collection(db, "Transactions"), {
-              transactionId: trId,
-              tenantName: b.tenantName || "",
-              amountPaid: totalAmount,
-              paymentDate: serverTimestamp(),
-              method: "Manual",
-              billRef: b.billId || "",
-              createdAt: serverTimestamp(),
+            await updateDoc(billRef, {
+              electric: newElectric,
+              water: newWater,
+              status: newStatus,
+              updatedAt: serverTimestamp(),
             });
-            await deleteDoc(billRef);
-          }
 
-          billModal?.classList.add("hidden");
-          await loadBills();
-          await loadTransactions();
+            if (originalStatus !== "Paid" && newStatus === "Paid") {
+              const totalAmount = newElectric + newWater + (b.roomRent || 0);
+              const trId = await generateId("TR", "Transactions");
+              await addDoc(collection(db, "Transactions"), {
+                transactionId: trId,
+                tenantName: b.tenantName || "",
+                amountPaid: totalAmount,
+                paymentDate: serverTimestamp(),
+                method: "Manual",
+                billRef: b.billId || "",
+                createdAt: serverTimestamp(),
+              });
+              await deleteDoc(billRef);
+            }
+
+            billModal?.classList.add("hidden");
+            await loadBills();
+            await loadTransactions();
+          };
         };
-      };
-    });
-  } catch (err) {
-    console.error("loadBills error:", err);
+      });
+    } catch (err) {
+      console.error("loadBills error:", err);
+    }
   }
-}
 
-async function loadTransactions() {
-  if (!transactionTable) return;
-  transactionTable.innerHTML = "";
+  async function loadTransactions() {
+    if (!transactionTable) return;
+    transactionTable.innerHTML = "";
 
-  try {
-    const snaps = await getDocs(
-      query(collection(db, "Transactions"), orderBy("createdAt", "desc"))
-    );
+    try {
+      const snaps = await getDocs(
+        query(collection(db, "Transactions"), orderBy("createdAt", "desc"))
+      );
 
-    snaps.forEach((docSnap) => {
-      const t = docSnap.data() || {};
-      const payDate = t.paymentDate?.toDate
-        ? t.paymentDate.toDate().toLocaleDateString()
-        : "—";
+      snaps.forEach((docSnap) => {
+        const t = docSnap.data() || {};
+        const payDate = t.paymentDate?.toDate
+          ? t.paymentDate.toDate().toLocaleDateString()
+          : "—";
 
-      const tr = document.createElement("tr");
-      tr.className =
-        "border-b border-gray-200 hover:bg-gray-50 transition duration-150 ease-in-out";
+        const tr = document.createElement("tr");
+        tr.className =
+          "border-b border-gray-200 hover:bg-gray-50 transition duration-150 ease-in-out";
 
-      tr.innerHTML = `
-        <td class="p-3 text-center text-sm font-medium text-gray-700">${t.transactionId || "—"}</td>
-        <td class="p-3 text-left text-sm text-gray-700">${t.tenantName || "—"}</td>
-        <td class="p-3 text-center text-sm font-semibold text-gray-800">
-          ₱${(t.amountPaid || 0).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </td>
-        <td class="p-3 text-center text-sm text-gray-700">${payDate}</td>
-        <td class="p-3 text-center text-sm text-gray-700">${t.method || "—"}</td>
-        <td class="p-3 text-center text-sm text-gray-700">${t.billRef || "—"}</td>
-        <td class="p-3 text-center text-sm">
-          <button class="deleteTransaction bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" data-id="${docSnap.id}">
-            Delete
-          </button>
-        </td>
-      `;
-      transactionTable.appendChild(tr);
-    });
+        tr.innerHTML = `
+          <td class="p-3 text-center text-sm font-medium text-gray-700">${t.transactionId || "—"}</td>
+          <td class="p-3 text-left text-sm text-gray-700">${t.tenantName || "—"}</td>
+          <td class="p-3 text-center text-sm font-semibold text-gray-800">
+            ₱${(t.amountPaid || 0).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </td>
+          <td class="p-3 text-center text-sm text-gray-700">${payDate}</td>
+          <td class="p-3 text-center text-sm text-gray-700">${t.method || "—"}</td>
+          <td class="p-3 text-center text-sm text-gray-700">${t.billRef || "—"}</td>
+          <td class="p-3 text-center text-sm">
+            <button class="deleteTransaction bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" data-id="${docSnap.id}">
+              Delete
+            </button>
+          </td>
+        `;
+        transactionTable.appendChild(tr);
+      });
 
-    document.querySelectorAll(".deleteTransaction").forEach((btn) => {
-      btn.onclick = async () => {
-        if (!confirm("Delete this transaction?")) return;
-        const id = btn.dataset.id;
-        try {
-          await deleteDoc(doc(db, "Transactions", id));
-          await loadTransactions();
-        } catch (err) {
-          console.error("deleteTransaction error:", err);
-          alert("Error deleting transaction (check console).");
-        }
-      };
-    });
-  } catch (err) {
-    console.error("Error loading transactions:", err);
+      document.querySelectorAll(".deleteTransaction").forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm("Delete this transaction?")) return;
+          const id = btn.dataset.id;
+          try {
+            await deleteDoc(doc(db, "Transactions", id));
+            await loadTransactions();
+          } catch (err) {
+            console.error("deleteTransaction error:", err);
+            alert("Error deleting transaction (check console).");
+          }
+        };
+      });
+    } catch (err) {
+      console.error("Error loading transactions:", err);
+    }
   }
-}
+
+  cancelBillBtn?.addEventListener("click", () => billModal?.classList.add("hidden"));
+
   (async () => {
     await loadTenants();
     await loadRooms();

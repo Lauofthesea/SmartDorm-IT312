@@ -42,6 +42,21 @@ header nav a:hover {
   box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
 }
 
+.btn-secondary {
+  background: white;
+  color: #4f46e5;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: 2px solid #4f46e5;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+
 /* ========== MOBILE MENU ========== */
 .mobile-menu {
   background: white;
@@ -494,8 +509,6 @@ header nav a:hover {
     font-size: 1.5rem;
   }
 }
-
-/* ========== UTILITIES ========== */
 a {
   text-decoration: none;
   color: inherit;

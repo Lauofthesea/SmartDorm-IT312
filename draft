@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SmartDorm - Smart Dorm Management System</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>CODEX - Smart Dorm Management System</title>
   <link rel="stylesheet" href="css-files/index.css">
-  <link rel="icon" href="../icons/codexupdated.png">
+  <link rel="icon" href="./icons/codexupdated.png">
 </head>
 
 <body class="bg-gray-50">
- 
-  <header class="fixed w-full top-0 z-50 bg-white shadow-md">
+    <header class="fixed w-full top-0 z-50 bg-white shadow-md">
     <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <img src="https://cdn-icons-png.flaticon.com/512/906/906334.png" alt="SmartDorm" class="h-8 w-8">
+        <img src="./icons/codexupdated.png" alt="SmartDorm" class="h-8 w-8">
         <h1 class="text-2xl font-bold text-indigo-600">SmartDorm</h1>
       </div>
       
@@ -28,10 +26,7 @@
         <a href="#features">Features</a>
         <a href="#payment">Payments</a>
         <a href="#contact">Contact</a>
-        <div class="flex gap-2">
-          <a href="./Tenant/tenant-login.html" class="btn-secondary">Tenant Login</a>
-          <a href="./Admin_Dashboard/login.html" class="btn-primary">Admin Login</a>
-        </div>
+        <a href="../Login/index.html" class="btn-primary">Login</a>
       </nav>
     </div>
 
@@ -39,7 +34,7 @@
       <a href="#features">Features</a>
       <a href="#payment">Payments</a>
       <a href="#contact">Contact</a>
-      <a href="./Tenant/tenant-login.html" class="btn-mobile">Login</a>
+      <a href="../Login/index.html" class="btn-mobile">Login</a>
     </div>
   </header>
   <section class="hero">
@@ -50,7 +45,7 @@
       </p>
       <div class="hero-buttons">
         <a href="#features" class="btn-hero-primary">Explore Features</a>
-        <a href="./Tenant/tenant-login.html" class="btn-hero-secondary">Get Started</a>
+        <a href="../Login/index.html" class="btn-hero-secondary">Get Started</a>
       </div>
     </div>
   </section>
@@ -171,8 +166,8 @@
       </div>
       
       <div class="contact-buttons">
-        <a href="mailto:---@gmail.com" class="btn-contact-primary">📧 Email Us</a>
-        <a href="./Login/index.html" class="btn-contact-secondary">[] Login</a>
+        <a href="mailto:smartdormproject@gmail.com" class="btn-contact-primary">[] Email Us</a>
+        <a href="../Login/index.html" class="btn-contact-secondary">[] Login</a>
       </div>
 
       <div class="contact-grid">
@@ -221,7 +216,7 @@
         
         <div class="footer-links">
           <h4 class="footer-heading">Connect</h4>
-          <p class="footer-email">----@gmail.com</p>
+          <p class="footer-email">@@@@@gmail.com</p>
           <div class="footer-socials">
             <a href="#" class="social-link">
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -244,5 +239,6 @@
   </footer>
 
   <script src="script.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </body>
 </html>

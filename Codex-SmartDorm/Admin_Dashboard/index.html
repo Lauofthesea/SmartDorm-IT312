@@ -126,7 +126,7 @@
                 <th class="p-3 col-small col-center">Contact</th>
                 <th class="p-3 col-medium col-left">Email</th>
                 <th class="p-3 col-medium col-center">Move-in Date</th>
-                <th class="p-3 col-small col-center">Duration</th>
+                <th class="p-3 col-medium col-center">Birthdate</th>
                 <th class="p-3 col-status col-center">Actions</th>
               </tr>
             </thead>
@@ -203,6 +203,8 @@
         </div>
       </section>
     </main>
+    
+    <!-- Tenant Modal -->
     <div id="tenantModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center p-4 overflow-y-auto">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 my-10 space-y-2">
         <h2 class="text-xl font-semibold text-center mb-3">Add / Edit Tenant</h2>
@@ -210,20 +212,20 @@
         <label class="block text-gray-700">Full Name</label>
         <input id="tenantName" class="w-full p-2.5 border rounded-lg" placeholder="Full name" />
 
-        <label class="block text-gray-700">Age</label>
-        <input id="tenantAge" type="text" class="w-full p-2.5 border rounded-lg" placeholder="Age" />
+        <label class="block text-gray-700">Birthdate</label>
+        <input id="tenantBirthdate" type="date" class="w-full p-2.5 border rounded-lg" />
 
         <label class="block text-gray-700">Contact</label>
-        <input id="tenantContact" class="w-full p-2.5 border rounded-lg" placeholder="Contact" />
+        <input id="tenantContact" class="w-full p-2.5 border rounded-lg" placeholder="Contact number" />
 
         <label class="block text-gray-700">Email</label>
         <input id="tenantEmail" type="email" class="w-full p-2.5 border rounded-lg" placeholder="Email" />
 
+        <label class="block text-gray-700">Password</label>
+        <input id="tenantPassword" type="password" class="w-full p-2.5 border rounded-lg" placeholder="Create password for tenant" />
+
         <label class="block text-gray-700 mt-2">Move-in Date</label>
         <input id="tenantMoveIn" type="date" class="w-full p-2.5 border rounded-lg" />
-
-        <label class="block text-gray-700 mt-2">Duration (Days)</label>
-        <input id="tenantDuration" type="number" class="w-full p-2.5 border rounded-lg" placeholder="e.g. 30" />
 
         <label class="block text-gray-700 mt-2">Assign Room</label>
         <select id="tenantRoom" class="w-full p-2.5 border rounded-lg"></select>
@@ -234,6 +236,8 @@
         </div>
       </div>
     </div>
+
+    <!-- Room Modal -->
     <div id="roomModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center p-4 overflow-y-auto">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 my-10 space-y-3">
         <h2 class="text-xl font-semibold text-center mb-3">Add Room</h2>
@@ -255,6 +259,8 @@
         </div>
       </div>
     </div>
+
+    <!-- Bill Modal -->
     <div id="billModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center p-4 overflow-y-auto">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 my-10 space-y-3">
         <h2 class="text-xl font-semibold text-center mb-3">Edit Bill</h2>
