@@ -1,3 +1,4 @@
+/*
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
   getAuth,
@@ -29,7 +30,6 @@ const db = getFirestore(app);
 let currentUser = null;
 let tenantInfo = null;
 
-// Check authentication
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "../Login/index.html";
@@ -43,14 +43,12 @@ onAuthStateChanged(auth, async (user) => {
 
 async function loadTenantInfo() {
   try {
-    // First, try to find tenant in Users collection (for new sign-ups)
     let userQuery = query(
       collection(db, "Users"),
       where("email", "==", currentUser.email)
     );
     let querySnapshot = await getDocs(userQuery);
 
-    // If not found in Users, search Tenants collection (for admin-added tenants)
     if (querySnapshot.empty) {
       userQuery = query(
         collection(db, "Tenants"),
@@ -68,14 +66,11 @@ async function loadTenantInfo() {
 
     tenantInfo = querySnapshot.docs[0].data();
     
-    // Update header and welcome
     document.getElementById("tenantName").textContent = tenantInfo.name || "Tenant";
     document.getElementById("tenantNameDisplay").textContent = tenantInfo.name || "Guest";
 
-    // Update stats
     document.getElementById("roomNumberStat").textContent = tenantInfo.roomNumber || "—";
 
-    // Update profile tab
     document.getElementById("profileName").textContent = tenantInfo.name || "—";
     document.getElementById("profileEmail").textContent = tenantInfo.email || "—";
     document.getElementById("profileContact").textContent = tenantInfo.contact || "—";
@@ -147,7 +142,6 @@ async function loadBills() {
   }
 }
 
-// Tab switching
 document.getElementById("billsTab").addEventListener("click", () => {
   document.getElementById("billsContent").classList.remove("hidden");
   document.getElementById("profileContent").classList.add("hidden");
@@ -170,7 +164,6 @@ document.getElementById("profileTab").addEventListener("click", () => {
   document.getElementById("billsTab").classList.remove("bg-indigo-500", "text-white");
 });
 
-// Logout
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   try {
     await signOut(auth);
@@ -180,3 +173,5 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     alert("Error logging out");
   }
 });
+
+*/
