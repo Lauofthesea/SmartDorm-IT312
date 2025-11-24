@@ -6,4 +6,8 @@ System Structure Update 3 -- 11/11/2025 --- Integrated Login and Admin in the ma
 
 System Structure Update 4 -- 11/18/2025 --- Added payment system simulated to Maya/Gcash
 
+System Structure Update 5 -- 11/24/2025 --- Prepare for Deplyoment Stage, Integrating May/GCash API, redesign ui and the announcement page.
+
+
+
 
