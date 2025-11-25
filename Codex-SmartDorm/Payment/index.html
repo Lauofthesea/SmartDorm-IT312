@@ -5,8 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartDorm - Payment</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="../css-files/payment.css">
-  <link rel="icon" href="../icons/codexupdated.png">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .pulse-animation {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .step {
+      transition: all 0.3s ease;
+    }
+    
+    .step.active {
+      border-color: #4f46e5;
+      background: #eef2ff;
+    }
+    
+    .payment-method-btn {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .payment-method-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(79, 70, 229, 0.1);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .payment-method-btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    #qrCanvas {
+      border: 4px solid #e5e7eb;
+      border-radius: 1rem;
+      padding: 1rem;
+      background: white;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-50">
@@ -18,190 +76,527 @@
         <h1 class="text-2xl font-bold text-indigo-600">SmartDorm</h1>
       </div>
       
-      <button id="backBtn" class="text-gray-600 hover:text-indigo-600 font-medium">
+      <button id="backBtn" class="text-gray-600 hover:text-indigo-600 font-medium transition">
         ← Back to Dashboard
       </button>
     </div>
   </header>
 
   <main class="pt-28 pb-16 px-4">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-6xl mx-auto">
       
-      <div class="text-center mb-8">
-        <h2 class="text-3xl font-bold text-gray-800 mb-2">Payment Portal</h2>
-        <p class="text-gray-600">Complete your payment securely using GCash or Maya</p>
+      <!-- Progress Steps -->
+      <div class="mb-8 bg-white rounded-xl shadow-sm p-6">
+        <div class="flex justify-between items-center">
+          <div class="step active flex-1 text-center">
+            <div class="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 font-bold">1</div>
+            <p class="text-sm font-semibold text-gray-700">Bill Details</p>
+          </div>
+          <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+          <div class="step flex-1 text-center" id="step2">
+            <div class="w-12 h-12 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-2 font-bold">2</div>
+            <p class="text-sm font-semibold text-gray-500">Payment Method</p>
+          </div>
+          <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+          <div class="step flex-1 text-center" id="step3">
+            <div class="w-12 h-12 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-2 font-bold">3</div>
+            <p class="text-sm font-semibold text-gray-500">Confirmation</p>
+          </div>
+        </div>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-8">
+      <div class="grid lg:grid-cols-5 gap-6">
         
-        <div class="payment-summary">
-          <h3 class="section-title">Bill Summary</h3>
+        <!-- Bill Summary (Sticky) -->
+        <div class="lg:col-span-2">
+          <div class="bg-white rounded-xl shadow-sm p-6 lg:sticky lg:top-24">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 pb-3 border-b-2 border-gray-200">
+              Bill Summary
+            </h3>
+            
+            <div class="space-y-3 mb-4">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Bill ID:</span>
+                <span class="font-semibold" id="billId">B001</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Tenant:</span>
+                <span class="font-semibold" id="tenantName">John Doe</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Room:</span>
+                <span class="font-semibold" id="roomNumber">101</span>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg p-4 mb-4 space-y-2">
+              <div class="flex justify-between text-sm">
+                <span>Room Rent</span>
+                <span class="font-semibold" id="roomRent">₱5,000.00</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span>Electricity</span>
+                <span class="font-semibold" id="electric">₱800.00</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span>Water</span>
+                <span class="font-semibold" id="water">₱300.00</span>
+              </div>
+              
+              <div class="border-t-2 border-gray-200 pt-2 mt-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-lg font-bold">Total Amount</span>
+                  <span class="text-2xl font-bold text-indigo-600" id="totalAmount">₱6,100.00</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+              <p class="text-xs text-yellow-800">
+                <strong>Note:</strong> This is a simulated payment environment. No actual charges will be made.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Process -->
+        <div class="lg:col-span-3">
           
-          <div class="bill-info">
-            <div class="bill-row">
-              <span class="bill-label">Bill ID:</span>
-              <span class="bill-value" id="billId">Loading...</span>
-            </div>
-            <div class="bill-row">
-              <span class="bill-label">Tenant Name:</span>
-              <span class="bill-value" id="tenantName">Loading...</span>
-            </div>
-            <div class="bill-row">
-              <span class="bill-label">Room Number:</span>
-              <span class="bill-value" id="roomNumber">Loading...</span>
-            </div>
-          </div>
-
-          <div class="bill-breakdown">
-            <h4 class="breakdown-title">Charges Breakdown</h4>
+          <!-- Step 1: Payment Method Selection -->
+          <div id="paymentMethodSection" class="bg-white rounded-xl shadow-sm p-6 mb-6 fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Select Payment Method</h3>
             
-            <div class="charge-item">
-              <span>Room Rent</span>
-              <span id="roomRent">₱0.00</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <button class="payment-method-btn border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-500 hover:shadow-lg" data-method="gcash">
+                <div class="relative z-10">
+                  <img src="../icons/gcashlogo.png" alt="GCash" class="h-12 mx-auto mb-3">
+                  <p class="font-semibold text-gray-800">GCash</p>
+                  <p class="text-xs text-gray-500 mt-1">Instant payment via GCash</p>
+                </div>
+              </button>
+              
+              <button class="payment-method-btn border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-500 hover:shadow-lg" data-method="maya">
+                <div class="relative z-10">
+                  <img src="../icons/mayalogo.png" alt="Maya" class="h-12 mx-auto mb-3">
+                  <p class="font-semibold text-gray-800">Maya</p>
+                  <p class="text-xs text-gray-500 mt-1">Pay using Maya wallet</p>
+                </div>
+              </button>
             </div>
-            <div class="charge-item">
-              <span>Electricity</span>
-              <span id="electric">₱0.00</span>
-            </div>
-            <div class="charge-item">
-              <span>Water</span>
-              <span id="water">₱0.00</span>
-            </div>
-            
-            <div class="charge-total">
-              <span>Total Amount</span>
-              <span id="totalAmount">₱0.00</span>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="flex gap-3">
+                <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="text-sm text-blue-800">
+                  <p class="font-semibold mb-1">Secure Payment Process</p>
+                  <ul class="list-disc list-inside space-y-1 text-xs">
+                    <li>All transactions are encrypted</li>
+                    <li>QR code expires in 15 minutes</li>
+                    <li>Instant confirmation upon payment</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="bill-status">
-            <span class="status-label">Status:</span>
-            <span class="status-badge" id="billStatus">Unpaid</span>
-          </div>
-        </div>
+          <!-- Step 2: QR Code & Payment Instructions -->
+          <div id="qrSection" class="bg-white rounded-xl shadow-sm p-6 mb-6 hidden fade-in">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-bold text-gray-800">Scan QR Code</h3>
+              <button id="changeMethodBtn" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                ← Change Method
+              </button>
+            </div>
 
-        <div class="payment-form">
-          <h3 class="section-title">Payment Method</h3>
-          
-          <div class="payment-methods">
-            <button class="payment-method-btn active" data-method="gcash">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/GCash_logo.svg" alt="GCash" class="payment-logo">
-              <span>GCash</span>
+            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-8 mb-6">
+              <div class="text-center mb-6">
+                <div class="inline-block bg-white rounded-xl p-4 shadow-lg mb-4">
+                  <canvas id="qrCanvas"></canvas>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">
+                  Scan this QR code with your <span id="methodName" class="font-bold text-indigo-600">GCash</span> app
+                </p>
+                <p class="text-xs text-gray-500">Transaction ID: <span id="transactionId" class="font-mono">TXN-XXXX</span></p>
+              </div>
+
+              <div class="bg-white rounded-lg p-4 mb-4">
+                <p class="font-semibold text-gray-800 mb-2">Payment Instructions:</p>
+                <ol class="text-sm text-gray-600 space-y-2">
+                  <li class="flex gap-2">
+                    <span class="font-bold text-indigo-600">1.</span>
+                    <span>Open your <span id="methodNameInst">GCash</span> app</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="font-bold text-indigo-600">2.</span>
+                    <span>Tap "Scan QR" and scan the code above</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="font-bold text-indigo-600">3.</span>
+                    <span>Confirm the payment amount: <strong id="amountConfirm">₱6,100.00</strong></span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="font-bold text-indigo-600">4.</span>
+                    <span>Enter your PIN to complete the transaction</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="font-bold text-indigo-600">5.</span>
+                    <span>Click "I've Completed Payment" button below</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <svg class="w-5 h-5 pulse-animation" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>QR code expires in <span id="countdown" class="font-bold text-orange-600">15:00</span></span>
+              </div>
+            </div>
+
+            <button id="confirmPaymentBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-semibold text-lg transition shadow-lg hover:shadow-xl">
+              ✓ I've Completed the Payment
             </button>
-            <button class="payment-method-btn" data-method="maya">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Maya_Logo.svg" alt="Maya" class="payment-logo">
-              <span>Maya</span>
-            </button>
+
+            <p class="text-center text-xs text-gray-500 mt-4">
+              Having trouble? <a href="#" class="text-indigo-600 hover:underline">Contact Support</a>
+            </p>
           </div>
 
-          <form id="paymentForm" class="form-container">
-            
-            <div class="form-group">
-              <label for="payerName">Full Name</label>
-              <input type="text" id="payerName" placeholder="Enter your full name" required>
-              <span class="error-message" id="nameError"></span>
+          <!-- Step 3: Verification (Simulated) -->
+          <div id="verificationSection" class="bg-white rounded-xl shadow-sm p-6 hidden fade-in">
+            <div class="text-center py-8">
+              <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-12 h-12 text-indigo-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-gray-800 mb-2">Verifying Payment...</h3>
+              <p class="text-gray-600 mb-6">Please wait while we confirm your transaction</p>
+              <div class="flex justify-center gap-2">
+                <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+              </div>
             </div>
-
-            <div class="form-group">
-              <label for="payerEmail">Email Address</label>
-              <input type="email" id="payerEmail" placeholder="your@email.com" required>
-              <span class="error-message" id="emailError"></span>
-            </div>
-
-            <div class="form-group">
-              <label for="payerPhone">Phone Number</label>
-              <input type="tel" id="payerPhone" placeholder="09XXXXXXXXX" required>
-              <span class="error-message" id="phoneError"></span>
-            </div>
-
-            <div class="form-group">
-              <label for="accountNumber" id="accountLabel">GCash Number</label>
-              <input type="tel" id="accountNumber" placeholder="09XXXXXXXXX" required>
-              <span class="error-message" id="accountError"></span>
-            </div>
-
-            <div class="payment-note">
-              <svg class="note-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <p>You will be redirected to complete your payment securely through your selected payment method.</p>
-            </div>
-
-            <button type="submit" class="submit-btn" id="payBtn">
-              <span id="btnText">Proceed to Payment</span>
-              <svg class="btn-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div class="security-info">
-        <div class="security-item">
-          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-          <div>
-            <h4>Secure Payment</h4>
-            <p>256-bit SSL encryption</p>
           </div>
-        </div>
-        <div class="security-item">
-          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-          </svg>
-          <div>
-            <h4>Protected</h4>
-            <p>Your data is safe with us</p>
-          </div>
-        </div>
-        <div class="security-item">
-          <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <div>
-            <h4>Instant Confirmation</h4>
-            <p>Real-time payment updates</p>
-          </div>
+
         </div>
       </div>
     </div>
   </main>
 
-  <div id="loadingModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="loader"></div>
-      <h3 class="modal-title">Processing Payment...</h3>
-      <p class="modal-text">Please wait while we process your payment securely.</p>
-    </div>
-  </div>
-  <div id="successModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="success-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+  <!-- Success Modal -->
+  <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-8 text-center fade-in">
+      <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
         </svg>
       </div>
-      <h3 class="modal-title">Payment Successful!</h3>
-      <p class="modal-text">Your payment has been processed successfully.</p>
-      <button class="modal-btn" id="successBtn">Back to Dashboard</button>
+      <h3 class="text-3xl font-bold text-gray-800 mb-3">Payment Successful!</h3>
+      <p class="text-gray-600 mb-6">Your payment has been processed successfully.</p>
+      
+      <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+        <div class="flex justify-between text-sm mb-2">
+          <span class="text-gray-600">Transaction ID:</span>
+          <span class="font-mono font-semibold" id="successTxnId">TXN-XXXX</span>
+        </div>
+        <div class="flex justify-between text-sm mb-2">
+          <span class="text-gray-600">Amount Paid:</span>
+          <span class="font-semibold text-green-600" id="successAmount">₱6,100.00</span>
+        </div>
+        <div class="flex justify-between text-sm mb-2">
+          <span class="text-gray-600">Payment Method:</span>
+          <span class="font-semibold" id="successMethod">GCash</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">Date & Time:</span>
+          <span class="font-semibold" id="successDate">-</span>
+        </div>
+      </div>
+
+      <button id="backToDashboardBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition">
+        Back to Dashboard
+      </button>
     </div>
   </div>
 
-  <div id="errorModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="error-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </div>
-      <h3 class="modal-title">Payment Failed</h3>
-      <p class="modal-text" id="errorMessage">Something went wrong. Please try again.</p>
-      <button class="modal-btn" id="errorBtn">Try Again</button>
-    </div>
-  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  <script type="module" src="script.js"></script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPJNPW_zQ5IPH8Svdl-y7DMx7IW8WHurU",
+      authDomain: "smartdorm-465c3.firebaseapp.com",
+      projectId: "smartdorm-465c3",
+      storageBucket: "smartdorm-465c3.appspot.com",
+      messagingSenderId: "849167644629",
+      appId: "1:849167644629:web:0fa4c65e47d819f7ec6f5c",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentBillData = null;
+    let currentBillDocId = null;
+    let selectedMethod = '';
+    let countdownInterval = null;
+    let timeLeft = 900; // 15 minutes in seconds
+    let currentUser = null;
+
+    // Initialize
+    function init() {
+      // Check authentication
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          alert('Please login to access payment page');
+          window.location.href = "../Tenant/tenant-login.html";
+          return;
+        }
+        currentUser = user;
+        await loadBillData();
+      });
+      
+      attachEventListeners();
+    }
+
+    async function loadBillData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const billId = urlParams.get('billId');
+
+      if (!billId) {
+        alert('No bill ID provided');
+        window.history.back();
+        return;
+      }
+
+      try {
+        // Find the bill by billId
+        const billsQuery = query(collection(db, "Bills"), where("billId", "==", billId));
+        const billsSnapshot = await getDocs(billsQuery);
+
+        if (billsSnapshot.empty) {
+          alert('Bill not found');
+          window.history.back();
+          return;
+        }
+
+        const billDoc = billsSnapshot.docs[0];
+        currentBillDocId = billDoc.id;
+        currentBillData = billDoc.data();
+
+        // Check if bill is already paid
+        if (currentBillData.status === "Paid") {
+          alert('This bill has already been paid');
+          window.history.back();
+          return;
+        }
+
+        displayBillData(currentBillData);
+      } catch (error) {
+        console.error('Error loading bill:', error);
+        alert('Error loading bill data: ' + error.message);
+        window.history.back();
+      }
+    }
+
+    function displayBillData(bill) {
+      document.getElementById('billId').textContent = bill.billId;
+      document.getElementById('tenantName').textContent = bill.tenantName;
+      document.getElementById('roomNumber').textContent = bill.roomNumber;
+      document.getElementById('roomRent').textContent = `₱${bill.roomRent.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      document.getElementById('electric').textContent = `₱${bill.electric.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      document.getElementById('water').textContent = `₱${bill.water.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      
+      const total = bill.roomRent + bill.electric + bill.water;
+      document.getElementById('totalAmount').textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      document.getElementById('amountConfirm').textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+    }
+
+    function attachEventListeners() {
+      // Payment method selection
+      document.querySelectorAll('.payment-method-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedMethod = btn.dataset.method;
+          showQRSection();
+        });
+      });
+
+      document.getElementById('changeMethodBtn').addEventListener('click', () => {
+        document.getElementById('qrSection').classList.add('hidden');
+        document.getElementById('paymentMethodSection').classList.remove('hidden');
+        updateStep(2, false);
+        stopCountdown();
+      });
+
+      document.getElementById('confirmPaymentBtn').addEventListener('click', verifyPayment);
+      document.getElementById('backBtn').addEventListener('click', () => window.history.back());
+      document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+        window.location.href = '../Tenant/tenant-dashboard.html';
+      });
+    }
+
+    function showQRSection() {
+      document.getElementById('paymentMethodSection').classList.add('hidden');
+      document.getElementById('qrSection').classList.remove('hidden');
+      updateStep(2, true);
+      
+      const methodName = selectedMethod === 'gcash' ? 'GCash' : 'Maya';
+      document.getElementById('methodName').textContent = methodName;
+      document.getElementById('methodNameInst').textContent = methodName;
+      
+      generateQRCode();
+      startCountdown();
+    }
+
+    function generateQRCode() {
+      const transactionId = 'TXN-' + Date.now().toString(36).toUpperCase();
+      document.getElementById('transactionId').textContent = transactionId;
+      
+      const total = currentBillData.roomRent + currentBillData.electric + currentBillData.water;
+      const qrData = JSON.stringify({
+        merchant: 'SmartDorm',
+        method: selectedMethod,
+        amount: total,
+        billId: currentBillData.billId,
+        transactionId: transactionId,
+        timestamp: Date.now()
+      });
+      
+      const canvas = document.getElementById('qrCanvas');
+      QRCode.toCanvas(canvas, qrData, {
+        width: 250,
+        margin: 2,
+        color: {
+          dark: selectedMethod === 'gcash' ? '#0066CC' : '#00A651',
+          light: '#FFFFFF'
+        }
+      }, (error) => {
+        if (error) console.error('QR Generation Error:', error);
+      });
+    }
+
+    function startCountdown() {
+      timeLeft = 900;
+      updateCountdownDisplay();
+      
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        updateCountdownDisplay();
+        
+        if (timeLeft <= 0) {
+          stopCountdown();
+          alert('QR code has expired. Please generate a new one.');
+          document.getElementById('qrSection').classList.add('hidden');
+          document.getElementById('paymentMethodSection').classList.remove('hidden');
+          updateStep(2, false);
+        }
+      }, 1000);
+    }
+
+    function stopCountdown() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+    }
+
+    function updateCountdownDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      document.getElementById('countdown').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updateStep(stepNumber, isActive) {
+      const step = document.getElementById(`step${stepNumber}`);
+      const circle = step.querySelector('div');
+      const text = step.querySelector('p');
+      
+      if (isActive) {
+        step.classList.add('active');
+        circle.classList.remove('bg-gray-200', 'text-gray-500');
+        circle.classList.add('bg-indigo-600', 'text-white');
+        text.classList.remove('text-gray-500');
+        text.classList.add('text-gray-700');
+      } else {
+        step.classList.remove('active');
+        circle.classList.remove('bg-indigo-600', 'text-white');
+        circle.classList.add('bg-gray-200', 'text-gray-500');
+        text.classList.remove('text-gray-700');
+        text.classList.add('text-gray-500');
+      }
+    }
+
+    async function verifyPayment() {
+      stopCountdown();
+      document.getElementById('qrSection').classList.add('hidden');
+      document.getElementById('verificationSection').classList.remove('hidden');
+      updateStep(3, true);
+      
+      // Simulate realistic payment verification (5 seconds)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Process the payment in Firebase
+      try {
+        await processPaymentInFirebase();
+        showSuccessModal();
+      } catch (error) {
+        console.error('Payment processing error:', error);
+        alert('Error processing payment: ' + error.message);
+        document.getElementById('verificationSection').classList.add('hidden');
+        document.getElementById('qrSection').classList.remove('hidden');
+        updateStep(3, false);
+        startCountdown();
+      }
+    }
+
+    async function processPaymentInFirebase() {
+      const transactionId = document.getElementById('transactionId').textContent;
+      const total = currentBillData.roomRent + currentBillData.electric + currentBillData.water;
+      const methodName = selectedMethod === 'gcash' ? 'GCash' : 'Maya';
+
+      // 1. Update bill status to Paid
+      await updateDoc(doc(db, "Bills", currentBillDocId), {
+        status: "Paid",
+        updatedAt: serverTimestamp()
+      });
+
+      // 2. Create transaction record
+      await addDoc(collection(db, "Transactions"), {
+        transactionId: transactionId,
+        tenantName: currentBillData.tenantName,
+        tenantEmail: currentUser.email,
+        amountPaid: total,
+        paymentDate: serverTimestamp(),
+        method: methodName,
+        billRef: currentBillData.billId,
+        roomNumber: currentBillData.roomNumber,
+        createdAt: serverTimestamp()
+      });
+
+      console.log('Payment processed successfully in Firebase');
+    }
+
+    function showSuccessModal() {
+      const transactionId = document.getElementById('transactionId').textContent;
+      const total = currentBillData.roomRent + currentBillData.electric + currentBillData.water;
+      const methodName = selectedMethod === 'gcash' ? 'GCash' : 'Maya';
+      
+      document.getElementById('successTxnId').textContent = transactionId;
+      document.getElementById('successAmount').textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      document.getElementById('successMethod').textContent = methodName;
+      document.getElementById('successDate').textContent = new Date().toLocaleString('en-PH');
+      
+      document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    // Start the app
+    init();
+  </script>
 </body>
 </html>

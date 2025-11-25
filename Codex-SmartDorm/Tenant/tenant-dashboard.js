@@ -72,6 +72,7 @@ async function loadTenantData(userEmail) {
 
     await loadBills(tenant.name, tenant.roomNumber);
     await loadTransactions(tenant.name);
+    await loadAnnouncements();
 
     loadingSpinner.classList.add("hidden");
     dashboardContent.classList.remove("hidden");
@@ -89,7 +90,8 @@ async function loadBills(tenantName, roomNumber) {
   try {
     const billsQuery = query(
       collection(db, "Bills"),
-      where("tenantName", "==", tenantName)
+      where("tenantName", "==", tenantName),
+      orderBy("dueDate", "asc")
     );
     const billsSnap = await getDocs(billsQuery);
 
@@ -107,6 +109,26 @@ async function loadBills(tenantName, roomNumber) {
         ? "bg-green-100 text-green-700 border-green-200"
         : "bg-yellow-100 text-yellow-700 border-yellow-200";
 
+      // Calculate days until due
+      const today = new Date();
+      const dueDate = new Date(bill.dueDate);
+      const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+      
+      let dueDateBadge = "";
+      let dueDateText = bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : "No due date";
+      
+      if (bill.status !== "Paid" && bill.dueDate) {
+        if (daysUntilDue < 0) {
+          dueDateBadge = `<span class="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-semibold">OVERDUE (${Math.abs(daysUntilDue)} days)</span>`;
+        } else if (daysUntilDue === 0) {
+          dueDateBadge = `<span class="px-2 py-1 bg-orange-500 text-white text-xs rounded-full font-semibold">DUE TODAY</span>`;
+        } else if (daysUntilDue <= 3) {
+          dueDateBadge = `<span class="px-2 py-1 bg-orange-400 text-white text-xs rounded-full font-semibold">DUE IN ${daysUntilDue} DAY${daysUntilDue > 1 ? 'S' : ''}</span>`;
+        } else {
+          dueDateBadge = `<span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">${daysUntilDue} days remaining</span>`;
+        }
+      }
+
       const billCard = document.createElement("div");
       billCard.className = `border-2 rounded-lg p-4 ${statusColor}`;
       billCard.innerHTML = `
@@ -115,9 +137,16 @@ async function loadBills(tenantName, roomNumber) {
             <h4 class="font-bold text-lg">${bill.billId || "N/A"}</h4>
             <p class="text-sm opacity-75">Room ${bill.roomNumber || "N/A"}</p>
           </div>
-          <span class="px-3 py-1 rounded-full text-sm font-semibold ${statusColor}">
-            ${bill.status || "Unknown"}
-          </span>
+          <div class="flex flex-col items-end gap-1">
+            <span class="px-3 py-1 rounded-full text-sm font-semibold ${statusColor}">
+              ${bill.status || "Unknown"}
+            </span>
+            ${dueDateBadge}
+          </div>
+        </div>
+        <div class="bg-white bg-opacity-50 rounded p-3 mb-3">
+          <p class="text-xs font-semibold text-gray-600 mb-1">DUE DATE</p>
+          <p class="text-lg font-bold">${dueDateText}</p>
         </div>
         <div class="grid grid-cols-2 gap-3 text-sm mb-3">
           <div>
@@ -323,6 +352,48 @@ async function loadTransactions(tenantName) {
 
   } catch (error) {
     console.error("Error loading transactions:", error);
+  }
+}
+
+async function loadAnnouncements() {
+  const announcementsContainer = document.getElementById("announcementsContainer");
+  const noAnnouncements = document.getElementById("noAnnouncements");
+
+  try {
+    const announcementsQuery = query(
+      collection(db, "Announcements"),
+      orderBy("createdAt", "desc")
+    );
+    const announcementsSnap = await getDocs(announcementsQuery);
+
+    if (announcementsSnap.empty) {
+      noAnnouncements.classList.remove("hidden");
+      return;
+    }
+
+    noAnnouncements.classList.add("hidden");
+    announcementsContainer.innerHTML = "";
+
+    announcementsSnap.forEach((docSnap) => {
+      const announcement = docSnap.data();
+      const date = announcement.createdAt?.toDate?.()
+        ? announcement.createdAt.toDate().toLocaleDateString()
+        : "Recently";
+
+      const announcementCard = document.createElement("div");
+      announcementCard.className = "bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-30";
+      announcementCard.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+          <h4 class="font-bold text-lg">${announcement.title || "Announcement"}</h4>
+          <span class="text-xs bg-white bg-opacity-30 px-2 py-1 rounded">${date}</span>
+        </div>
+        <p class="text-sm text-purple-50">${announcement.message || ""}</p>
+      `;
+      announcementsContainer.appendChild(announcementCard);
+    });
+
+  } catch (error) {
+    console.error("Error loading announcements:", error);
   }
 }
 
