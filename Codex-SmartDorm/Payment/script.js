@@ -36,7 +36,7 @@ let currentUser = null;
 // ========== AUTH CHECK ==========
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    window.location.href = "../Login/index.html";
+    window.location.href = ".././Codex-SmartDorm/Tenant/tenant-login.html";
   } else {
     currentUser = user;
     if (billId) {
