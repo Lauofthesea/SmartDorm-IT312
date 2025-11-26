@@ -103,10 +103,11 @@
     </header>
 
     <main class="max-w-7xl mx-auto pt-28 pb-10 px-4">
-      <div class="flex gap-3 mb-6">
+      <div class="flex gap-3 mb-6 flex-wrap">
         <button class="tab-btn bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium" data-tab="tenants">Tenants</button>
         <button class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" data-tab="rooms">Rooms</button>
         <button class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" data-tab="bills">Bills</button>
+        <button class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" data-tab="pending-payments">Pending Payments</button>
         <button class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" data-tab="announcements">Announcements</button>
         <button class="tab-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" data-tab="transactions">Transactions</button>
       </div>
@@ -202,6 +203,28 @@
             <tbody id="announcementTable"></tbody>
           </table>
         </div>
+      </section>
+      <section id="pending-payments" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Pending Payment Confirmations</h2>
+        </div>
+        <div class="overflow-x-auto bg-white shadow rounded-xl">
+          <table>
+            <thead class="bg-indigo-500 text-white">
+              <tr>
+                <th class="p-3 col-id">Transaction ID</th>
+                <th class="p-3 col-name">Tenant Name</th>
+                <th class="p-3 col-medium">Bill Type</th>
+                <th class="p-3 col-amount">Amount</th>
+                <th class="p-3 col-date">Submitted</th>
+                <th class="p-3 col-medium">Payment Method</th>
+                <th class="p-3 col-status">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pendingPaymentsTable"></tbody>
+          </table>
+        </div>
+        <p id="noPendingPayments" class="text-center text-gray-500 mt-4">No pending payments to review.</p>
       </section>
       <section id="transactions" class="tab-content hidden">
         <div class="flex justify-between items-center mb-4">

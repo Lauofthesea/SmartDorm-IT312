@@ -47,7 +47,8 @@ service cloud.firestore {
                      (isAdmin() || 
                       request.auth.token.email == resource.data.tenantEmail);
       allow create: if isAdmin();
-      allow update: if isAdmin();
+      allow update: if isAdmin() || 
+                       (isSignedIn() && request.auth.token.email == resource.data.tenantEmail);  // <-- ADDED: Allows tenants to update their own bills
       allow delete: if isAdmin();
     }
     

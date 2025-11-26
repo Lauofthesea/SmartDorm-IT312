@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   Timestamp,
   query,
+  where,
   orderBy,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
@@ -37,7 +38,8 @@ const auth = getAuth(app);
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    window.location.href = "../Login/index.html";
+    // Redirect to admin login when not authenticated
+    window.location.href = "login.html";
   }
 });
 
@@ -74,6 +76,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("logoutBtn")?.addEventListener("click", async () => {
     try {
       await signOut(auth);
+      // Ensure redirect to admin login after sign out
+      window.location.href = "login.html";
     } catch (err) {
       console.error("Logout error:", err);
     }
@@ -100,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const billTenantSelect = document.getElementById("billTenantSelect");
 
   let editingBillId = null;
+  let currentTenantData = null;
 
   const transactionTable = document.getElementById("transactionTable");
 
@@ -446,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("This email is already registered in Firebase Authentication.\n\nTenant records created in Firestore, but authentication account already exists.\n\nThe tenant may already be able to login with their existing password.");
           } else if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
             alert("Incorrect admin password entered.\n\nTenant created successfully but you need to log in again as admin.");
-            window.location.href = "../Login/index.html";
+            window.location.href = ".././Codex-SmartDorm/Tenant/tenant-login.html";
             return;
           } else if (authError.code === "auth/invalid-email") {
             alert("Invalid email format. Tenant records created but auth account failed.");
@@ -549,6 +554,159 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // ============ BILL CREATION ============
+  addBillBtn?.addEventListener("click", async () => {
+    // Load tenants into dropdown
+    try {
+      billTenantSelect.innerHTML = '<option value="">Select a tenant</option>';
+      const tenantsSnap = await getDocs(collection(db, "Tenants"));
+      
+      tenantsSnap.forEach((docSnap) => {
+        const t = docSnap.data();
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = `${t.name} (Room ${t.roomNumber})`;
+        option.dataset.tenantData = JSON.stringify({
+          id: docSnap.id,
+          name: t.name,
+          roomNumber: t.roomNumber,
+          email: t.email,
+          roomRate: t.roomRate || 0
+        });
+        billTenantSelect.appendChild(option);
+      });
+    } catch (err) {
+      console.error("Error loading tenants:", err);
+      alert("Error loading tenants");
+      return;
+    }
+    
+    // Reset form fields
+    document.getElementById("billTenantName").value = "";
+    document.getElementById("billRoomNumber").value = "";
+    document.getElementById("billElectric").value = "";
+    document.getElementById("billWater").value = "";
+    document.getElementById("billRoomRent").value = "";
+    document.getElementById("billStatus").value = "Unpaid";
+    
+    // Set default due dates (30 days from today)
+    const today = new Date();
+    const dueDate = new Date(today);
+    dueDate.setDate(dueDate.getDate() + 30);
+    const dueDateStr = dueDate.toISOString().split('T')[0];
+    
+    document.getElementById("billElectricDue").value = dueDateStr;
+    document.getElementById("billWaterDue").value = dueDateStr;
+    document.getElementById("billRentDue").value = dueDateStr;
+    
+    // Update modal title
+    document.getElementById("billModalTitle").textContent = "Create New Bill";
+    
+    billModal?.classList.remove("hidden");
+  });
+
+  // Handle tenant selection
+  billTenantSelect?.addEventListener("change", async (e) => {
+    if (!e.target.value) {
+      document.getElementById("billTenantName").value = "";
+      document.getElementById("billRoomNumber").value = "";
+      document.getElementById("billRoomRent").value = "";
+      currentTenantData = null;
+      return;
+    }
+
+    const selectedOption = e.target.options[e.target.selectedIndex];
+    const tenantData = JSON.parse(selectedOption.dataset.tenantData);
+    currentTenantData = tenantData;
+
+    // Populate tenant info
+    document.getElementById("billTenantName").value = tenantData.name || "";
+    document.getElementById("billRoomNumber").value = tenantData.roomNumber || "";
+    
+    // Get room rate from Rooms collection
+    try {
+      const roomsSnap = await getDocs(collection(db, "Rooms"));
+      const room = roomsSnap.docs.find(r => r.data().roomNumber === tenantData.roomNumber);
+      if (room) {
+        const roomRate = room.data().rate || 0;
+        document.getElementById("billRoomRent").value = roomRate;
+        currentTenantData.roomRate = roomRate;
+      }
+    } catch (err) {
+      console.error("Error fetching room rate:", err);
+    }
+    
+    updateBillTotal();
+  });
+
+  // Calculate total when amounts change
+  const billAmountInputs = ["billElectric", "billWater", "billRoomRent"];
+  billAmountInputs.forEach(id => {
+    document.getElementById(id)?.addEventListener("change", updateBillTotal);
+    document.getElementById(id)?.addEventListener("input", updateBillTotal);
+  });
+
+  function updateBillTotal() {
+    const electric = parseFloat(document.getElementById("billElectric").value) || 0;
+    const water = parseFloat(document.getElementById("billWater").value) || 0;
+    const rent = parseFloat(document.getElementById("billRoomRent").value) || 0;
+    const total = electric + water + rent;
+    document.getElementById("billTotalDisplay").textContent = `₱${total.toFixed(2)}`;
+  }
+
+  cancelBillBtn?.addEventListener("click", () => {
+    billModal?.classList.add("hidden");
+    currentTenantData = null;
+  });
+
+  saveBillBtn?.addEventListener("click", async () => {
+    if (!currentTenantData) {
+      alert("Please select a tenant");
+      return;
+    }
+
+    const electric = parseFloat(document.getElementById("billElectric").value) || 0;
+    const water = parseFloat(document.getElementById("billWater").value) || 0;
+    const roomRent = parseFloat(document.getElementById("billRoomRent").value) || 0;
+    const status = document.getElementById("billStatus").value;
+    const electricDue = document.getElementById("billElectricDue").value;
+    const waterDue = document.getElementById("billWaterDue").value;
+    const rentDue = document.getElementById("billRentDue").value;
+
+    if (!electricDue || !waterDue || !rentDue) {
+      alert("Please set due dates for all bill types");
+      return;
+    }
+
+    try {
+      const billId = await generateId("B", "Bills");
+      
+      await addDoc(collection(db, "Bills"), {
+        billId,
+        tenantName: currentTenantData.name,
+        tenantEmail: currentTenantData.email,
+        roomNumber: currentTenantData.roomNumber,
+        electric,
+        water,
+        roomRent,
+        electricDueDate: electricDue,
+        waterDueDate: waterDue,
+        rentDueDate: rentDue,
+        status: status,
+        createdAt: serverTimestamp(),
+      });
+
+      alert(`Bill created successfully!\n\nBill ID: ${billId}\nTenant: ${currentTenantData.name}\nTotal: ₱${(electric + water + roomRent).toFixed(2)}`);
+      
+      billModal?.classList.add("hidden");
+      currentTenantData = null;
+      await loadBills();
+    } catch (err) {
+      console.error("saveBill error:", err);
+      alert("Error creating bill: " + err.message);
+    }
+  });
+
   async function loadBills() {
     if (!billTable) return;
     billTable.innerHTML = "";
@@ -562,6 +720,10 @@ document.addEventListener("DOMContentLoaded", () => {
             ? "bg-green-100 text-green-700"
             : "bg-yellow-100 text-yellow-700";
 
+        // Get the latest due date from the three bill types
+        const dueDates = [b.electricDueDate, b.waterDueDate, b.rentDueDate].filter(d => d);
+        const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => new Date(d)))).toLocaleDateString() : "—";
+
         const tr = document.createElement("tr");
         tr.className = "border-b border-gray-200 hover:bg-gray-50";
         tr.innerHTML = `
@@ -571,6 +733,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="p-3 text-center text-sm text-gray-600">₱${(b.electric || 0).toFixed(2)}</td>
           <td class="p-3 text-center text-sm text-gray-600">₱${(b.water || 0).toFixed(2)}</td>
           <td class="p-3 text-center text-sm text-gray-600">₱${(b.roomRent || 0).toFixed(2)}</td>
+          <td class="p-3 text-center text-sm text-gray-600">${latestDueDate}</td>
           <td class="p-3 text-center text-sm font-semibold text-gray-800">₱${total.toFixed(2)}</td>
           <td class="p-3 text-center text-sm">
             <span class="px-3 py-1 rounded-full text-xs font-semibold ${color}">
@@ -702,10 +865,307 @@ document.addEventListener("DOMContentLoaded", () => {
 
   cancelBillBtn?.addEventListener("click", () => billModal?.classList.add("hidden"));
 
+  // Announcement Save/Edit/Delete
+  const saveAnnouncementBtn = document.getElementById("saveAnnouncement");
+  const cancelAnnouncementBtn = document.getElementById("cancelAnnouncement");
+  const announcementModal = document.getElementById("announcementModal");
+  const announcementTitle = document.getElementById("announcementTitle");
+  const announcementMessage = document.getElementById("announcementMessage");
+  const announcementTable = document.getElementById("announcementTable");
+  let editingAnnouncementId = null;
+
+  // Open modal to create new announcement
+  const addAnnouncementBtn = document.getElementById("addAnnouncementBtn");
+  addAnnouncementBtn?.addEventListener("click", () => {
+    editingAnnouncementId = null;
+    announcementTitle.value = "";
+    announcementMessage.value = "";
+    announcementModal?.classList.remove("hidden");
+  });
+
+  cancelAnnouncementBtn?.addEventListener("click", () => {
+    editingAnnouncementId = null;
+    announcementModal?.classList.add("hidden");
+    announcementTitle.value = "";
+    announcementMessage.value = "";
+  });
+
+  saveAnnouncementBtn?.addEventListener("click", async () => {
+    const title = announcementTitle?.value?.trim();
+    const message = announcementMessage?.value?.trim();
+
+    if (!title || !message) {
+      alert("Please fill in both title and message.");
+      return;
+    }
+
+    try {
+      if (editingAnnouncementId) {
+        // Update existing
+        await updateDoc(doc(db, "Announcements", editingAnnouncementId), {
+          title,
+          message,
+          updatedAt: serverTimestamp(),
+          updatedBy: auth.currentUser?.email || "admin",
+        });
+        alert("Announcement updated successfully!");
+      } else {
+        // Create new
+        await addDoc(collection(db, "Announcements"), {
+          title,
+          message,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || "admin",
+        });
+        alert("Announcement posted successfully!");
+      }
+
+      editingAnnouncementId = null;
+      announcementTitle.value = "";
+      announcementMessage.value = "";
+      announcementModal?.classList.add("hidden");
+      await loadAnnouncements();
+    } catch (err) {
+      console.error("Error saving announcement:", err);
+      alert("Error posting announcement: " + err.message);
+    }
+  });
+
+  // Load announcements for admin panel
+  async function loadAnnouncements() {
+    if (!announcementTable) return;
+    announcementTable.innerHTML = "";
+    try {
+      const snaps = await getDocs(query(collection(db, "Announcements"), orderBy("createdAt", "desc")));
+      if (snaps.empty) return;
+      snaps.forEach((d) => {
+        const a = d.data() || {};
+        const date = a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString() : "Recently";
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-gray-200 hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-center text-sm">${d.id}</td>
+          <td class="p-3 text-left text-sm">${a.title || "—"}</td>
+          <td class="p-3 text-left text-sm">${a.message || "—"}</td>
+          <td class="p-3 text-center text-sm">${date}</td>
+          <td class="p-3 text-center text-sm">
+            <div class="flex justify-center items-center gap-2">
+              <button class="editAnnouncement bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded" data-id="${d.id}">Edit</button>
+              <button class="deleteAnnouncement bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" data-id="${d.id}">Delete</button>
+            </div>
+          </td>
+        `;
+        announcementTable.appendChild(tr);
+      });
+
+      // Edit/Delete listeners
+      document.querySelectorAll('.editAnnouncement').forEach((btn) => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const docSnap = await getDoc(doc(db, 'Announcements', id));
+          if (!docSnap.exists()) return alert('Announcement not found');
+          const data = docSnap.data();
+          editingAnnouncementId = id;
+          announcementTitle.value = data.title || '';
+          announcementMessage.value = data.message || '';
+          announcementModal?.classList.remove('hidden');
+        };
+      });
+
+      document.querySelectorAll('.deleteAnnouncement').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('Delete this announcement?')) return;
+          try {
+            await deleteDoc(doc(db, 'Announcements', btn.dataset.id));
+            await loadAnnouncements();
+          } catch (err) {
+            console.error('Error deleting announcement:', err);
+            alert('Failed to delete announcement');
+          }
+        };
+      });
+    } catch (err) {
+      console.error('Error loading announcements (admin):', err);
+    }
+  }
+
+  async function loadPendingPayments() {
+    const pendingPaymentsTable = document.getElementById("pendingPaymentsTable");
+    const noPendingPayments = document.getElementById("noPendingPayments");
+    
+    if (!pendingPaymentsTable) return;
+    
+    pendingPaymentsTable.innerHTML = "";
+    
+    try {
+      // Avoid composite index requirement by not ordering in the query.
+      // We'll fetch all pending transactions and sort them client-side by createdAt desc.
+      const transactionsSnap = await getDocs(
+        query(collection(db, "Transactions"), where("status", "==", "pending"))
+      );
+
+      if (transactionsSnap.empty) {
+        noPendingPayments.classList.remove("hidden");
+        return;
+      }
+
+      noPendingPayments.classList.add("hidden");
+
+      // Map docs and sort by createdAt (newest first). Handle missing timestamps safely.
+      const txDocs = transactionsSnap.docs
+        .map((d) => ({ id: d.id, data: d.data() }))
+        .sort((a, b) => {
+          const aTs = a.data.createdAt?.toDate ? a.data.createdAt.toDate().getTime() : (a.data.createdAt?.seconds ? a.data.createdAt.seconds * 1000 : 0);
+          const bTs = b.data.createdAt?.toDate ? b.data.createdAt.toDate().getTime() : (b.data.createdAt?.seconds ? b.data.createdAt.seconds * 1000 : 0);
+          return bTs - aTs;
+        });
+
+      txDocs.forEach(({ id, data: t }) => {
+        const payDate = t.paymentDate?.toDate
+          ? t.paymentDate.toDate().toLocaleDateString()
+          : t.createdAt?.toDate()
+          ? t.createdAt.toDate().toLocaleDateString()
+          : "—";
+
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-gray-200 hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-center text-sm font-medium text-gray-700">${t.transactionId || "—"}</td>
+          <td class="p-3 text-left text-sm text-gray-700">${t.tenantName || "—"}</td>
+          <td class="p-3 text-center text-sm text-gray-600">${t.billType || "Full Bill"}</td>
+          <td class="p-3 text-right text-sm font-semibold text-gray-800">₱${(t.amountPaid || 0).toFixed(2)}</td>
+          <td class="p-3 text-center text-sm text-gray-600">${payDate}</td>
+          <td class="p-3 text-center text-sm text-gray-600">${t.method || "—"}</td>
+          <td class="p-3 text-center text-sm">
+            <div class="flex justify-center items-center gap-2">
+              <button class="approvePending bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${id}" data-trans-id="${t.transactionId}">
+                Confirm
+              </button>
+              <button class="rejectPending bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold" data-id="${id}">
+                Reject
+              </button>
+            </div>
+          </td>
+        `;
+        pendingPaymentsTable.appendChild(tr);
+      });
+      
+      // Add event listeners for approve/reject buttons
+      document.querySelectorAll(".approvePending").forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm("Mark this payment as received?")) return;
+          const transId = btn.dataset.id;
+          try {
+            // Mark transaction as confirmed
+            const transRef = doc(db, "Transactions", transId);
+            await updateDoc(transRef, {
+              status: "confirmed",
+              confirmedAt: serverTimestamp(),
+              paymentDate: serverTimestamp(),
+              confirmedBy: auth.currentUser?.email || "admin"
+            });
+
+            // Fetch transaction data to locate the corresponding bill
+            const transSnap = await getDoc(transRef);
+            const transData = transSnap.exists() ? transSnap.data() : null;
+            if (transData && transData.billRef && transData.billType) {
+              // Find the bill document by billId (billRef)
+              const billsQuery = query(collection(db, "Bills"), where("billId", "==", transData.billRef));
+              const billsSnap = await getDocs(billsQuery);
+              if (!billsSnap.empty) {
+                const billDoc = billsSnap.docs[0];
+                const billRef = doc(db, "Bills", billDoc.id);
+                const billData = billDoc.data() || {};
+
+                // Determine field names
+                const fieldBase = transData.billType.toLowerCase().replace(/\s+/g, ""); // e.g., 'roomrent', 'electricity', 'water'
+                const pendingField = `${fieldBase}Pending`;
+                const paidField = `${fieldBase}Paid`;
+
+                // Prepare update for the bill: mark paid and clear pending
+                const billUpdate = {};
+                billUpdate[pendingField] = false;
+                billUpdate[paidField] = true;
+                billUpdate.updatedAt = serverTimestamp();
+
+                await updateDoc(billRef, billUpdate);
+
+                // After marking this component paid, if all payable components are paid, set bill.status = 'Paid'
+                const refreshed = await getDoc(billRef);
+                const refreshedData = refreshed.exists() ? refreshed.data() : {};
+                const electricPaid = refreshedData.electricityPaid === true || (refreshedData.electric || 0) === 0;
+                const waterPaid = refreshedData.waterPaid === true || (refreshedData.water || 0) === 0;
+                const roomrentPaid = refreshedData.roomrentPaid === true || (refreshedData.roomRent || 0) === 0;
+
+                if (electricPaid && waterPaid && roomrentPaid) {
+                  await updateDoc(billRef, { status: "Paid", updatedAt: serverTimestamp() });
+                }
+              }
+            }
+
+            alert("Payment confirmed successfully!");
+            await loadPendingPayments();
+            await loadTransactions();
+            await loadBills();
+          } catch (err) {
+            console.error("Error confirming payment:", err);
+            alert("Error confirming payment");
+          }
+        };
+      });
+      
+      document.querySelectorAll(".rejectPending").forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm("Reject this payment? The tenant will need to resubmit.")) return;
+          const transId = btn.dataset.id;
+          try {
+            // Fetch transaction to determine related bill and bill type
+            const transRef = doc(db, "Transactions", transId);
+            const transSnap = await getDoc(transRef);
+            const transData = transSnap.exists() ? transSnap.data() : null;
+
+            // Mark transaction as rejected (keep record) with metadata
+            await updateDoc(transRef, {
+              status: "rejected",
+              rejectedAt: serverTimestamp(),
+              rejectedBy: auth.currentUser?.email || "admin",
+            });
+
+            // If the transaction referenced a bill, clear the pending flag so tenant can resubmit
+            if (transData && transData.billRef && transData.billType) {
+              const billsQuery = query(collection(db, "Bills"), where("billId", "==", transData.billRef));
+              const billsSnap = await getDocs(billsQuery);
+              if (!billsSnap.empty) {
+                const billDoc = billsSnap.docs[0];
+                const billRef = doc(db, "Bills", billDoc.id);
+                const fieldBase = transData.billType.toLowerCase().replace(/\s+/g, "");
+                const pendingField = `${fieldBase}Pending`;
+                const updateObj = {};
+                updateObj[pendingField] = false;
+                updateObj.updatedAt = serverTimestamp();
+                await updateDoc(billRef, updateObj);
+              }
+            }
+
+            alert("Payment rejected. Tenant may resubmit.");
+            await loadPendingPayments();
+          } catch (err) {
+            console.error("Error rejecting payment:", err);
+            alert("Error rejecting payment");
+          }
+        };
+      });
+    } catch (err) {
+      console.error("Error loading pending payments:", err);
+    }
+  }
+
   (async () => {
     await loadTenants();
     await loadRooms();
     await loadBills();
+    await loadPendingPayments();
     await loadTransactions();
+    await loadAnnouncements();
   })();
 });

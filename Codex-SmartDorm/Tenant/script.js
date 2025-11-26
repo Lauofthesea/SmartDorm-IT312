@@ -32,7 +32,7 @@ let tenantInfo = null;
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = "../Login/index.html";
+    window.location.href = ".././Codex-SmartDorm/Tenant/tenant-login.html";
     return;
   }
   
@@ -167,7 +167,7 @@ document.getElementById("profileTab").addEventListener("click", () => {
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   try {
     await signOut(auth);
-    window.location.href = "../Login/index.html";
+    window.location.href = ".././Codex-SmartDorm/Tenant/tenant-login.html";
   } catch (error) {
     console.error("Logout error:", error);
     alert("Error logging out");

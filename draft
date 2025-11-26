@@ -26,7 +26,7 @@
         <a href="#features">Features</a>
         <a href="#payment">Payments</a>
         <a href="#contact">Contact</a>
-        <a href="../Login/index.html" class="btn-primary">Login</a>
+        <a href="./Codex-SmartDorm/Tenant/tenant-login.html" class="btn-primary">Login</a>
       </nav>
     </div>
 
@@ -34,7 +34,7 @@
       <a href="#features">Features</a>
       <a href="#payment">Payments</a>
       <a href="#contact">Contact</a>
-      <a href="../Login/index.html" class="btn-mobile">Login</a>
+      <a href=".././Codex-SmartDorm/Tenant/tenant-login.html" class="btn-mobile">Login</a>
     </div>
   </header>
   <section class="hero">
@@ -45,7 +45,7 @@
       </p>
       <div class="hero-buttons">
         <a href="#features" class="btn-hero-primary">Explore Features</a>
-        <a href="../Login/index.html" class="btn-hero-secondary">Get Started</a>
+        <a href=".././Codex-SmartDorm/Tenant/tenant-login.html" class="btn-hero-secondary">Get Started</a>
       </div>
     </div>
   </section>
@@ -167,7 +167,7 @@
       
       <div class="contact-buttons">
         <a href="mailto:smartdormproject@gmail.com" class="btn-contact-primary">[] Email Us</a>
-        <a href="../Login/index.html" class="btn-contact-secondary">[] Login</a>
+        <a href=".././Codex-SmartDorm/Tenant/tenant-login.html" class="btn-contact-secondary">[] Login</a>
       </div>
 
       <div class="contact-grid">
