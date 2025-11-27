@@ -495,7 +495,7 @@ window.selectPaymentMethod = function(method) {
 function generateQRCode(method) {
   const transactionId = 'TXN-' + Date.now().toString(36).toUpperCase();
   document.getElementById('modalTransactionId').textContent = transactionId;
-  
+
   const qrData = JSON.stringify({
     merchant: 'SmartDorm',
     method: method,
@@ -505,8 +505,13 @@ function generateQRCode(method) {
     transactionId: transactionId,
     timestamp: Date.now()
   });
-  
+
   const canvas = document.getElementById('modalQrCanvas');
+  
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   QRCode.toCanvas(canvas, qrData, {
     width: 200,
     margin: 2,
@@ -518,6 +523,7 @@ function generateQRCode(method) {
     if (error) console.error('QR Generation Error:', error);
   });
 }
+
 
 function startCountdown() {
   timeLeft = 900;
